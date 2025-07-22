@@ -1,7 +1,8 @@
-import type React from "react"
-import { useState } from "react"
-import { Upload } from "lucide-react"
-import axios from "axios" // Import axios
+import type React from "react";
+import { useState } from "react";
+import { useNavigate } from "react-router-dom"; // Import useNavigate for React Router
+import { Upload } from "lucide-react";
+import axios from "axios";
 
 export default function CreateEvent() {
   const [formData, setFormData] = useState({
@@ -13,95 +14,135 @@ export default function CreateEvent() {
     endDate: "",
     eventCost: "",
     eventDescription: "",
-    eventImage: null as File | null, // More specific type for the image file
-  })
+    eventImage: null as File | null,
+  });
+
+  const navigate = useNavigate(); // Initialize useNavigate hook
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    const { name, value } = e.target
+    const { name, value } = e.target;
     setFormData((prev) => ({
       ...prev,
       [name]: value,
-    }))
-  }
+    }));
+  };
 
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
+    const file = e.target.files?.[0];
     if (file) {
       setFormData((prev) => ({
         ...prev,
         eventImage: file,
-      }))
+      }));
     }
-  }
+  };
+
+  const handleGenerateDescription = async () => {
+    const token = localStorage.getItem("adminToken");
+    if (!token) {
+      alert("You are not authorized. Please log in.");
+      return;
+    }
+
+    if (
+      !formData.eventTitle ||
+      !formData.eventVenue ||
+      !formData.startDate ||
+      !formData.endDate ||
+      !formData.startTime ||
+      !formData.endTime
+    ) {
+      alert("Please fill in all required fields before generating a description.");
+      return;
+    }
+
+    const costType = formData.eventCost && parseFloat(formData.eventCost) > 0 ? "paid" : "free";
+    const timeRange = `${formData.startTime} - ${formData.endTime}`;
+
+    try {
+      const response = await axios.post(
+        "http://localhost:8000/api/admin/generate-description/",
+        {
+          title: formData.eventTitle,
+          venue: formData.eventVenue,
+          start_date: formData.startDate,
+          end_date: formData.endDate,
+          time: timeRange,
+          cost_type: costType,
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      setFormData((prev) => ({
+        ...prev,
+        eventDescription: response.data.description,
+      }));
+    } catch (error) {
+      if (axios.isAxiosError(error)) {
+        const errorMessage = error.response?.data?.error || "Failed to generate description.";
+        alert(`Error: ${errorMessage}`);
+        console.error("Error generating description:", error.response?.data);
+      } else {
+        alert("An unexpected error occurred while generating the description.");
+        console.error("Error generating description:", error);
+      }
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
+    e.preventDefault();
 
-    // 1. Get the auth token (assuming it's stored in localStorage after login)
-    const token = localStorage.getItem("adminToken")
+    const token = localStorage.getItem("adminToken");
     if (!token) {
-      alert("You are not authorized. Please log in.")
-      return
+      alert("You are not authorized. Please log in.");
+      return;
     }
 
-    // 2. Create a FormData object to handle file upload
-    const data = new FormData()
+    const data = new FormData();
+    data.append("title", formData.eventTitle);
+    data.append("venue", formData.eventVenue);
+    data.append("start_date", formData.startDate);
+    data.append("end_date", formData.endDate);
+    const timeRange = `${formData.startTime} - ${formData.endTime}`;
+    data.append("time", timeRange);
+    const costType = formData.eventCost && parseFloat(formData.eventCost) > 0 ? "paid" : "free";
+    data.append("cost_type", costType);
+    data.append("description", formData.eventDescription);
 
-    // 3. Map frontend state to backend field names
-    // Note the differences: eventTitle -> title, eventVenue -> venue, etc.
-    data.append("title", formData.eventTitle)
-    data.append("venue", formData.eventVenue)
-    data.append("start_date", formData.startDate)
-    data.append("end_date", formData.endDate)
-
-    // Combine start and end time as your backend expects a single 'time' field
-    const timeRange = `${formData.startTime} - ${formData.endTime}`
-    data.append("time", timeRange)
-
-    // Determine 'cost_type' based on the eventCost input
-    const costType = formData.eventCost && parseFloat(formData.eventCost) > 0 ? "paid" : "free"
-    data.append("cost_type", costType)
-    
-    data.append("description", formData.eventDescription)
-
-    // Append the image file if it exists
     if (formData.eventImage) {
-      data.append("image", formData.eventImage)
+      data.append("image", formData.eventImage);
     } else {
-      alert("Please upload an event image.")
-      return
+      alert("Please upload an event image.");
+      return;
     }
 
-    // 4. Make the API request using axios
     try {
       const response = await axios.post("http://localhost:8000/api/admin/events/", data, {
         headers: {
-          'Authorization': `Bearer ${token}`,
-          // 'Content-Type': 'multipart/form-data' is set automatically by the browser
-          // when you use a FormData object, so you don't need to set it manually.
+          Authorization: `Bearer ${token}`,
         },
-      })
+      });
 
-      alert("Event created successfully!")
-      console.log("Server response:", response.data)
+      alert("Event created successfully!");
+      console.log("Server response:", response.data);
 
-      // As per your backend, redirect on success
-      if (response.data.redirect) {
-        window.location.href = response.data.redirect
-      }
-
+      // Redirect to /dashboard using useNavigate
+      navigate("/dashboard");
     } catch (error) {
-        if (axios.isAxiosError(error)) {
-            // Access specific error message from the backend response
-            const errorMessage = error.response?.data?.error || "An unexpected error occurred."
-            alert(`Error creating event: ${errorMessage}`)
-            console.error("Error creating event:", error.response?.data)
-        } else {
-            alert("An unexpected error occurred.")
-            console.error("Error creating event:", error)
-        }
+      if (axios.isAxiosError(error)) {
+        const errorMessage = error.response?.data?.error || "An unexpected error occurred.";
+        alert(`Error creating event: ${errorMessage}`);
+        console.error("Error creating event:", error.response?.data);
+      } else {
+        alert("An unexpected error occurred.");
+        console.error("Error creating event:", error);
+      }
     }
-  }
+  };
 
   return (
     <div className="min-h-screen bg-gray-50 py-8 px-4">
@@ -251,10 +292,21 @@ export default function CreateEvent() {
                   <div className="bg-gray-100 border-2 border-dashed border-gray-300 rounded-lg p-12 text-center hover:bg-gray-50 transition-colors">
                     <Upload className="mx-auto h-12 w-12 text-gray-400 mb-4" />
                     <p className="text-gray-600 font-medium">
-                        {formData.eventImage ? formData.eventImage.name : "Upload Here"}
+                      {formData.eventImage ? formData.eventImage.name : "Upload Here"}
                     </p>
                   </div>
                 </div>
+              </div>
+
+              {/* Generate AI Description Button */}
+              <div className="mb-6">
+                <button
+                  type="button"
+                  onClick={handleGenerateDescription}
+                  className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-6 rounded-lg transition-colors duration-200 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 outline-none"
+                >
+                  Generate AI Description
+                </button>
               </div>
 
               {/* Event Description */}
@@ -267,7 +319,7 @@ export default function CreateEvent() {
                   name="eventDescription"
                   value={formData.eventDescription}
                   onChange={handleInputChange}
-                  placeholder="Type here..."
+                  placeholder="Type here or generate an AI description..."
                   rows={6}
                   className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent outline-none transition-all resize-none"
                   required
@@ -288,5 +340,5 @@ export default function CreateEvent() {
         </div>
       </div>
     </div>
-  )
+  );
 }

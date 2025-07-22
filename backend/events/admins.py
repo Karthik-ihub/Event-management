@@ -14,7 +14,7 @@ import base64
 import bcrypt
 # Load env and configure Gemini
 load_dotenv()
-genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
+genai.configure(api_key="AIzaSyAIKHEl4brLrSkgV9JmTzdZi_9YgqWJKPo")
 
 # MongoDB connection
 MONGODB_URI = "mongodb+srv://PKDB:06102003-Pk@cluster0.yqecmgt.mongodb.net/event_management_db?retryWrites=true&w=majority"
@@ -40,13 +40,70 @@ def generate_ai_description(title, venue, start_date, end_date, time, cost_type)
     Use a fun and informative tone.
     """
     try:
-        model = genai.GenerativeModel("gemini-pro")
+        model = genai.GenerativeModel("gemini-1.5-flash")
         response = model.generate_content(prompt)
         return response.text.strip()
     except Exception as e:
         print("Gemini error:", e)
         return "An exciting event awaits you! Stay tuned for more details."
 
+# In admins.py, add this new endpoint below the existing code
+
+@csrf_exempt
+def generate_description(request):
+    """
+    Generates an AI description for the event based on provided details.
+    Expects a POST request with a JSON body containing 'title', 'venue', 'start_date', 'end_date', 'time', 'cost_type'.
+    """
+    if request.method == 'POST':
+        try:
+            auth_header = request.headers.get('Authorization')
+            if not auth_header or not auth_header.startswith('Bearer '):
+                return JsonResponse({'error': 'Unauthorized'}, status=401)
+
+            token = auth_header.split(' ')[1]
+            try:
+                payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+            except jwt.ExpiredSignatureError:
+                return JsonResponse({'error': 'Token expired'}, status=401)
+            except jwt.DecodeError:
+                return JsonResponse({'error': 'Invalid token'}, status=401)
+
+            admin = admins_collection.find_one({'email': payload['email'], 'token': token})
+            if not admin:
+                return JsonResponse({'error': 'Unauthorized'}, status=401)
+
+            # Parse request body
+            data = json.loads(request.body)
+            title = data.get('title')
+            venue = data.get('venue')
+            start_date = data.get('start_date')
+            end_date = data.get('end_date')
+            time = data.get('time')
+            cost_type = data.get('cost_type')
+
+            # Validations
+            if not title or len(title) > 50:
+                return JsonResponse({'error': 'Title is required and must be 50 chars or less'}, status=400)
+            if not venue or len(venue) > 150:
+                return JsonResponse({'error': 'Venue is required and must be 150 chars or less'}, status=400)
+            if not start_date or not end_date or start_date > end_date:
+                return JsonResponse({'error': 'Start date must be before end date'}, status=400)
+            if not time:
+                return JsonResponse({'error': 'Time is required'}, status=400)
+            if not cost_type or cost_type not in ['free', 'paid']:
+                return JsonResponse({'error': 'Cost type must be "free" or "paid"'}, status=400)
+
+            # Generate AI description
+            description = generate_ai_description(title, venue, start_date, end_date, time, cost_type)
+            return JsonResponse({'description': description}, status=200)
+
+        except json.JSONDecodeError:
+            return JsonResponse({'error': 'Invalid JSON'}, status=400)
+        except Exception as e:
+            print(f"An unexpected error occurred: {e}")
+            return JsonResponse({'error': str(e)}, status=500)
+    return JsonResponse({'error': 'Invalid request method'}, status=405)
 
 @csrf_exempt
 def register(request):
