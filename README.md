@@ -26,33 +26,4 @@ A web-based application for event creation and discovery with Admin and User flo
 ## Approach
 (TBD: Will be updated with a brief explanation of the project approach, max 300 words, once development progresses)
 
-## 📁 Folder Structure
-
-event-management-platform/
-├── backend/
-│   ├── event_platform/      # Django project settings (settings.py, urls.py)
-│   ├── events/              # Django app for event models, views, and APIs
-│   ├── static/              # For serving static files in production
-│   ├── media/               # For user-uploaded media files (event images)
-│   ├── venv/                # Python virtual environment (ignored by Git)
-│   ├── manage.py            # Django's command-line utility
-│   └── requirements.txt     # Backend Python dependencies
-│
-├── frontend/
-│   ├── public/              # Static assets (index.html, favicon)
-│   ├── src/                 # React source code
-│   │   ├── assets/          # Images, fonts, and global styles
-│   │   ├── components/      # Reusable UI components
-│   │   ├── pages/           # Page components (e.g., Home, Dashboard)
-│   │   ├── App.jsx          # Main application component
-│   │   └── main.jsx         # Application entry point
-│   ├── .env                 # Environment variables (e.g., API URL)
-│   ├── package.json         # Frontend dependencies and scripts
-│   └── vite.config.js       # Build configuration for Vite (or similar)
-│
-├── docs/                    # Project documentation and architecture diagrams
-│
-├── .gitignore               # Specifies intentionally untracked files to ignore
-└── README.md                # This file: Project overview and setup guide
-├── .gitignore               # Specifies intentionally untracked files to ignore
-└── README.md                # This file: Project overview and setup guide
+<pre><code>## 📁 Folder Structure ``` event-management-platform/ ├── backend/ # Django backend │ ├── event_platform/ # Django project settings (settings.py, urls.py) │ ├── events/ # Django app for event models, views, APIs │ ├── static/ # Static files for production │ ├── media/ # Uploaded media files (e.g., event images) │ ├── venv/ # Python virtual environment (not committed) │ ├── manage.py # Django CLI utility │ └── requirements.txt # Backend dependencies │ ├── frontend/ # React frontend │ ├── public/ # Public assets (index.html, favicon) │ ├── src/ # React source code │ │ ├── assets/ # Images, fonts, styles │ │ ├── components/ # Reusable components │ │ ├── pages/ # Page-level components (Home, Dashboard, etc.) │ │ ├── App.jsx # Main App component │ │ └── main.jsx # Entry point │ ├── .env # Environment variables │ ├── package.json # Frontend dependencies │ └── vite.config.js # Vite config │ ├── docs/ # Documentation and diagrams │ └── architecture.png # Architecture diagram │ ├── .gitignore # Ignored files └── README.md # Project overview and setup guide ``` </code></pre>
