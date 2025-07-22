@@ -1,8 +1,8 @@
 # Event Management Platform
 A web-based application for event creation and discovery with Admin and User flows.
 
-##Architecture of the project 
-docs/Event management.drawio (1).png
+## Architecture of the project
+![Architecture Diagram](docs/Event%20management.drawio%20(1).png)
 
 ## Setup Instructions
 1. Clone the repository: `git clone https://github.com/Karthik-ihub/event-management-platform.git`
