@@ -1,5 +1,8 @@
 import os
 
+# Set BASE_DIR to point to backend/event_platform
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
 # Update SECRET_KEY (replace with a secure key in production)
 SECRET_KEY = 'your-secret-key'
 
@@ -27,7 +30,7 @@ MIDDLEWARE = [
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
 
-# Allow React frontend (update with your frontend URL, e.g., http://localhost:3000)
+# Allow React frontend
 CORS_ALLOWED_ORIGINS = [
     'http://localhost:3000',
 ]
@@ -44,5 +47,5 @@ DATABASES = {
 }
 
 # Media settings for file uploads
-MEDIA_URL = 'E:/event-management-platform/media/events'
-MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
+MEDIA_URL = '/media/'
+MEDIA_ROOT = os.path.join(BASE_DIR, '../media')
