@@ -111,6 +111,7 @@ export default function CreateEvent() {
     data.append("time", timeRange);
     const costType = formData.eventCost && parseFloat(formData.eventCost) > 0 ? "paid" : "free";
     data.append("cost_type", costType);
+    data.append("amount", formData.eventCost); // ✅ sending amount to backend
     data.append("description", formData.eventDescription);
 
     if (formData.eventImage) {
@@ -129,8 +130,6 @@ export default function CreateEvent() {
 
       alert("Event created successfully!");
       console.log("Server response:", response.data);
-
-      // Redirect to /dashboard
       navigate("/dashboard");
     } catch (error) {
       if (axios.isAxiosError(error)) {
@@ -166,10 +165,11 @@ export default function CreateEvent() {
                 value={formData.eventTitle}
                 onChange={handleInputChange}
                 placeholder="Enter your event"
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent outline-none transition-all"
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg"
                 required
               />
             </div>
+
             <div>
               <label htmlFor="eventVenue" className="block text-sm font-medium text-gray-700 mb-2">
                 Event Venue
@@ -181,10 +181,11 @@ export default function CreateEvent() {
                 value={formData.eventVenue}
                 onChange={handleInputChange}
                 placeholder="Enter venue address"
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent outline-none transition-all"
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg"
                 required
               />
             </div>
+
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <label htmlFor="startTime" className="block text-sm font-medium text-gray-700 mb-2">
@@ -196,7 +197,7 @@ export default function CreateEvent() {
                   name="startTime"
                   value={formData.startTime}
                   onChange={handleInputChange}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent outline-none transition-all"
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg"
                   required
                 />
               </div>
@@ -210,11 +211,12 @@ export default function CreateEvent() {
                   name="endTime"
                   value={formData.endTime}
                   onChange={handleInputChange}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent outline-none transition-all"
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg"
                   required
                 />
               </div>
             </div>
+
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <label htmlFor="startDate" className="block text-sm font-medium text-gray-700 mb-2">
@@ -226,7 +228,7 @@ export default function CreateEvent() {
                   name="startDate"
                   value={formData.startDate}
                   onChange={handleInputChange}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent outline-none transition-all"
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg"
                   required
                 />
               </div>
@@ -240,11 +242,12 @@ export default function CreateEvent() {
                   name="endDate"
                   value={formData.endDate}
                   onChange={handleInputChange}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent outline-none transition-all"
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg"
                   required
                 />
               </div>
             </div>
+
             <div>
               <label htmlFor="eventCost" className="block text-sm font-medium text-gray-700 mb-2">
                 Event Cost (enter 0 for free)
@@ -255,13 +258,15 @@ export default function CreateEvent() {
                 name="eventCost"
                 value={formData.eventCost}
                 onChange={handleInputChange}
-                placeholder="Enter the cost of the event in INR"
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent outline-none transition-all"
+                placeholder="Enter the cost in INR"
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg"
                 required
               />
             </div>
+
             <div className="pt-6">
               <h3 className="text-xl font-bold text-gray-900 mb-6">Event Description</h3>
+
               <div className="mb-6">
                 <label className="block text-sm font-medium text-gray-700 mb-2">Event Image</label>
                 <div className="relative">
@@ -280,15 +285,17 @@ export default function CreateEvent() {
                   </div>
                 </div>
               </div>
+
               <div className="mb-6">
                 <button
                   type="button"
                   onClick={handleGenerateDescription}
-                  className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-6 rounded-lg transition-colors duration-200 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 outline-none"
+                  className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-6 rounded-lg"
                 >
                   Generate AI Description
                 </button>
               </div>
+
               <div>
                 <label htmlFor="eventDescription" className="block text-sm font-medium text-gray-700 mb-2">
                   Event Description
@@ -300,15 +307,16 @@ export default function CreateEvent() {
                   onChange={handleInputChange}
                   placeholder="Type here or generate an AI description..."
                   rows={6}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent outline-none transition-all resize-none"
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg resize-none"
                   required
                 />
               </div>
             </div>
+
             <div className="pt-6">
               <button
                 type="submit"
-                className="w-full bg-purple-600 hover:bg-purple-700 text-white font-semibold py-4 px-6 rounded-lg transition-colors duration-200 focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 outline-none"
+                className="w-full bg-purple-600 hover:bg-purple-700 text-white font-semibold py-4 px-6 rounded-lg"
               >
                 Create event
               </button>

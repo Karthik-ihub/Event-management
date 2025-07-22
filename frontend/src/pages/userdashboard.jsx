@@ -1,161 +1,150 @@
-import { useState, useEffect } from "react"
-import { Calendar, MapPin, Clock, Instagram, Facebook, Twitter, Search } from "lucide-react"
+import { useState, useEffect } from "react";
+import { Calendar, MapPin, Clock, Instagram, Facebook, Twitter, Search, Linkedin } from "lucide-react";
+import heroImage from "../assets/madeforthosewhodo.png";
 
 const UserDashboard = () => {
-  const [events, setEvents] = useState([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState(null)
+  const [events, setEvents] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   const [filters, setFilters] = useState({
     type: "",
     location: "",
     date: "",
-  })
+  });
 
-  // Get auth token from localStorage
-  const getAuthToken = () => {
-    return localStorage.getItem("authToken") || ""
-  }
+  const getAuthToken = () => localStorage.getItem("authToken") || "";
 
+  // This useEffect triggers a fetch whenever the filters change
   useEffect(() => {
-    fetchEvents()
-  }, [filters])
+    fetchEvents();
+  }, [filters]);
 
   const fetchEvents = async () => {
+    setLoading(true);
+    setError(null);
     try {
-      setLoading(true)
-      setError(null)
-
-      const token = getAuthToken()
+      const token = getAuthToken();
       if (!token) {
-        setError("Please login to view events")
-        setLoading(false)
-        return
+        setError("Please login to view events");
+        setLoading(false);
+        return;
       }
 
-      // Build query parameters
-      const params = new URLSearchParams()
-      if (filters.type) params.append("type", filters.type)
-      if (filters.location) params.append("location", filters.location)
-      if (filters.date) params.append("date", filters.date)
-
-      const url = `http://localhost:8000/api/user/events/${params.toString() ? "?" + params.toString() : ""}`
-
+      // Build query string from active filters
+      const query = new URLSearchParams();
+      if (filters.type) query.append('type', filters.type);
+      if (filters.location) query.append('location', filters.location);
+      if (filters.date) query.append('date', filters.date);
+      const queryString = query.toString();
+      
+      const url = `http://localhost:8000/api/user/dashboard/${queryString ? `?${queryString}` : ''}`;
+      
       const response = await fetch(url, {
         method: "GET",
         headers: {
           Authorization: `Bearer ${token}`,
           "Content-Type": "application/json",
         },
-      })
+      });
 
       if (response.status === 401) {
-        setError("Session expired. Please login again.")
-        return
+        localStorage.removeItem("authToken");
+        setError("Session expired. Please login again.");
+        setTimeout(() => { window.location.href = "/login"; }, 2000);
+        return;
       }
-
-      if (response.status === 403) {
-        setError("Access denied. User role required.")
-        return
-      }
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`)
-      }
-
-      const data = await response.json()
-      setEvents(data.events || [])
+      if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+      
+      const data = await response.json();
+      setEvents(data.events || []);
 
       if (data.events?.length === 0) {
-        setError("No events found matching your criteria")
+        // No error, just no results
       }
     } catch (error) {
-      console.error("Error fetching events:", error)
-      setError("Failed to fetch events. Please try again.")
+      console.error("Error fetching events:", error.message);
+      setError("Failed to fetch events. Please try again.");
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
 
   const handleFilterChange = (filterType, value) => {
-    setFilters((prev) => ({
-      ...prev,
-      [filterType]: value,
-    }))
-  }
+    setFilters((prev) => ({ ...prev, [filterType]: value }));
+  };
 
-  const formatDate = (dateString) => {
-    const date = new Date(dateString)
-    return date.toLocaleDateString("en-US", {
-      month: "short",
-      day: "numeric",
-    })
-  }
-
-  const handleLogin = () => {
-    window.location.href = "/login"
-  }
-
+  const handleLogin = () => window.location.href = "/login";
   const handleLogout = () => {
-    localStorage.removeItem("authToken")
-    window.location.href = "/login"
-  }
-
-  // Loading skeleton component
+    localStorage.removeItem("authToken");
+    window.location.href = "/login";
+  };
+  
+  // Skeleton for loading state
   const EventCardSkeleton = () => (
     <div className="bg-white rounded-lg shadow-md overflow-hidden animate-pulse">
       <div className="h-48 bg-gray-200"></div>
       <div className="p-4">
-        <div className="h-4 bg-gray-200 rounded mb-2"></div>
-        <div className="h-3 bg-gray-200 rounded mb-1"></div>
-        <div className="h-3 bg-gray-200 rounded"></div>
+        <div className="h-6 bg-gray-200 rounded mb-4"></div>
+        <div className="h-4 bg-gray-200 rounded mb-6"></div>
+        <div className="flex justify-between items-center">
+          <div className="h-4 bg-gray-200 rounded w-1/2"></div>
+          <div className="h-10 bg-gray-200 rounded w-1/4"></div>
+        </div>
       </div>
     </div>
-  )
+  );
 
-  // Event card component
-  const EventCard = ({ event, index }) => (
-    <div
-      key={index}
-      className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow duration-300"
-    >
-      <div className="relative h-48">
-        <img
-          src={event.image || `https://via.placeholder.com/300x200?text=Event+${index + 1}`}
-          alt={event.title}
-          className="w-full h-full object-cover"
-        />
-        <span
-          className={`absolute top-3 right-3 px-2.5 py-0.5 text-xs font-semibold rounded-full text-white ${
-            event.cost_type === "paid" ? "bg-purple-600" : "bg-green-600"
-          }`}
-        >
-          {event.cost_type === "paid" ? "Paid" : "Free"}
-        </span>
-      </div>
-      <div className="p-4">
-        <h3 className="font-bold text-lg mb-2 line-clamp-2">{event.title}</h3>
-        <div className="space-y-2 text-sm text-gray-600 mb-4">
-          <div className="flex items-center space-x-2">
-            <MapPin className="w-4 h-4" />
-            <span>{event.venue}</span>
-          </div>
-          <div className="flex items-center space-x-2">
-            <Calendar className="w-4 h-4" />
-            <span>
-              {formatDate(event.start_date)} - {formatDate(event.end_date)}
-            </span>
-          </div>
-          <div className="flex items-center space-x-2">
-            <Clock className="w-4 h-4" />
-            <span>{event.time}</span>
+  // UPDATED Event card component to match your design
+  const EventCard = ({ event }) => {
+    // Format date to match "Saturday, March 18, 9.30PM"
+    const formatEventDate = (dateString) => {
+      if (!dateString) return "Date not available";
+      const date = new Date(dateString);
+      const options = {
+        weekday: 'long',
+        month: 'long',
+        day: 'numeric',
+        hour: 'numeric',
+        minute: 'numeric',
+        hour12: true,
+      };
+      // A small regex to remove the :00 for even hours if needed, and make PM/AM uppercase
+      return new Intl.DateTimeFormat('en-US', options).format(date).replace(' at ', ', ').replace(':00', '');
+    };
+
+    return (
+      <div className="bg-white rounded-lg shadow-md overflow-hidden flex flex-col hover:shadow-xl transition-shadow duration-300">
+        <div className="relative">
+          <img
+            src={event.image || `https://via.placeholder.com/400x250?text=Event+Image`}
+            alt={event.title}
+            className="w-full h-48 object-cover"
+          />
+          <span className="absolute top-2 left-2 bg-black bg-opacity-60 text-white text-xs font-semibold px-2 py-1 rounded">
+            {event.cost_type ? event.cost_type.toUpperCase() : 'FREE'}
+          </span>
+        </div>
+        <div className="p-4 flex flex-col flex-grow">
+          <h3 className="font-bold text-lg mb-2 line-clamp-2 h-14">{event.title}</h3>
+          <p className="text-sm text-gray-600 mb-4">
+            {formatEventDate(event.start_date)}
+          </p>
+          <div className="mt-auto flex justify-between items-center">
+            <p className="text-sm text-gray-500 truncate pr-2">{`ONLINE EVENT - ${event.venue}`}</p>
+            {event.cost_type === 'paid' ? (
+              <div className="bg-purple-600 text-white font-bold text-sm py-2 px-4 rounded whitespace-nowrap">
+                {`${event.price || 'N/A'} INR`}
+              </div>
+            ) : (
+              <button className="bg-purple-600 hover:bg-purple-700 text-white font-bold py-2 px-4 rounded transition-colors whitespace-nowrap">
+                Book Now
+              </button>
+            )}
           </div>
         </div>
-        <button className="w-full bg-purple-600 hover:bg-purple-700 text-white font-medium py-2 px-4 rounded-lg transition-colors duration-200">
-          Book Now
-        </button>
       </div>
-    </div>
-  )
+    );
+  };
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -178,46 +167,32 @@ const UserDashboard = () => {
       </header>
 
       {/* Hero Section */}
-      <section className="relative h-96 overflow-hidden">
-        <img
-          src="/src/assets/madeforthosewhodo.png"
-          alt="Made for those who do - Event crowd"
-          className="w-full h-full object-cover"
-        />
-        <div className="absolute inset-0 bg-black bg-opacity-40 flex items-center justify-center">
-          <div className="text-center text-white">
-            <h1 className="text-4xl md:text-6xl font-bold mb-4">MADE FOR THOSE</h1>
-            <h1 className="text-4xl md:text-6xl font-bold">WHO DO</h1>
-          </div>
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div className="relative overflow-hidden rounded-lg">
+          <img src={heroImage || "/placeholder.svg"} alt="Event crowd" className="w-full h-96 object-cover"/>
         </div>
-      </section>
+      </div>
 
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Filters Section */}
         <div className="bg-white rounded-lg shadow-sm p-6 mb-8">
           <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
-            <h2 className="text-2xl font-bold text-gray-900">
-              Upcoming <span className="text-purple-600">Events</span>
-            </h2>
-
+            <h2 className="text-2xl font-bold text-gray-900">Upcoming <span className="text-purple-600">Events</span></h2>
             <div className="flex flex-col sm:flex-row gap-4">
-              {/* Date Filter */}
+              {/* Date Filter (Simplified values) */}
               <select
-                className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-purple-500"
                 value={filters.date}
                 onChange={(e) => handleFilterChange("date", e.target.value)}
               >
                 <option value="">All Dates</option>
-                <option value={new Date().toISOString().split("T")[0]}>Today</option>
-                <option value={new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split("T")[0]}>
-                  This Week
-                </option>
+                <option value="today">Today</option>
+                <option value="week">This Week</option>
               </select>
-
               {/* Type Filter */}
               <select
-                className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-purple-500"
                 value={filters.type}
                 onChange={(e) => handleFilterChange("type", e.target.value)}
               >
@@ -225,13 +200,12 @@ const UserDashboard = () => {
                 <option value="free">Free</option>
                 <option value="paid">Paid</option>
               </select>
-
               {/* Location Filter */}
               <div className="relative">
                 <input
                   type="text"
                   placeholder="Search location..."
-                  className="border border-gray-300 rounded-lg px-3 py-2 pl-10 text-sm focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                  className="border border-gray-300 rounded-lg px-3 py-2 pl-10 text-sm focus:ring-2 focus:ring-purple-500"
                   value={filters.location}
                   onChange={(e) => handleFilterChange("location", e.target.value)}
                 />
@@ -243,54 +217,31 @@ const UserDashboard = () => {
 
         {/* Error Message */}
         {error && (
-          <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg mb-6">
-            <div className="flex items-center justify-between">
-              <span>{error}</span>
-              {error.includes("login") && (
-                <button
-                  onClick={handleLogin}
-                  className="bg-red-600 hover:bg-red-700 text-white text-sm px-4 py-2 rounded-lg"
-                >
-                  Login Now
-                </button>
-              )}
-            </div>
+          <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg mb-6 flex items-center justify-between">
+            <span>{error}</span>
+            {error.includes("login") && (
+              <button onClick={handleLogin} className="bg-red-600 hover:bg-red-700 text-white text-sm px-4 py-2 rounded-lg">
+                Login Now
+              </button>
+            )}
           </div>
         )}
 
         {/* Events Grid */}
         {loading ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {[...Array(6)].map((_, i) => (
-              <EventCardSkeleton key={i} />
-            ))}
+            {[...Array(6)].map((_, i) => <EventCardSkeleton key={i} />)}
           </div>
         ) : events.length > 0 ? (
-          <>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {events.map((event, index) => (
-                <EventCard key={index} event={event} index={index} />
-              ))}
-            </div>
-
-            {/* Load More Button */}
-            <div className="text-center mt-8">
-              <button className="border border-purple-600 text-purple-600 hover:bg-purple-50 font-medium py-2 px-6 rounded-lg transition-colors duration-200">
-                Load More Events
-              </button>
-            </div>
-          </>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {events.map((event, index) => <EventCard key={event.id || index} event={event} />)}
+          </div>
         ) : (
           !error && (
             <div className="text-center py-12">
-              <div className="text-gray-400 mb-4">
-                <Calendar className="w-16 h-16 mx-auto" />
-              </div>
+              <Calendar className="w-16 h-16 mx-auto text-gray-400 mb-4" />
               <p className="text-gray-500 text-lg">No events found matching your criteria</p>
-              <button
-                onClick={() => setFilters({ type: "", location: "", date: "" })}
-                className="mt-4 text-purple-600 hover:text-purple-700 font-medium"
-              >
+              <button onClick={() => setFilters({ type: "", location: "", date: "" })} className="mt-4 text-purple-600 hover:text-purple-700 font-medium">
                 Clear Filters
               </button>
             </div>
@@ -298,57 +249,53 @@ const UserDashboard = () => {
         )}
       </main>
 
-      {/* Footer */}
-      <footer className="bg-gradient-to-r from-purple-900 to-blue-900 text-white py-12 mt-16">
+      {/* UPDATED Footer to match your design */}
+      <footer className="bg-[#0f0b30] text-white py-10 mt-16">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-8">
-            <div className="flex items-center justify-center space-x-2 mb-4">
+          <div className="text-center mb-10">
+            <div className="flex items-center justify-center space-x-1 mb-4">
               <span className="text-3xl font-bold">Event</span>
-              <span className="text-3xl font-bold text-purple-300">Hive</span>
+              <span className="text-3xl font-bold text-purple-400">Hive</span>
             </div>
-            <p className="text-purple-200 mb-6">Discover and book amazing events</p>
-            <button className="bg-purple-600 hover:bg-purple-700 text-white font-medium px-8 py-3 rounded-lg transition-colors duration-200">
-              Get Started
-            </button>
+            <form className="mt-4 max-w-md mx-auto flex" onSubmit={(e) => e.preventDefault()}>
+              <input
+                type="email"
+                placeholder="Enter your mail"
+                className="w-full px-4 py-3 text-gray-800 bg-white rounded-l-md focus:outline-none focus:ring-2 focus:ring-purple-500"
+              />
+              <button type="submit" className="bg-purple-600 hover:bg-purple-700 text-white font-semibold px-6 py-3 rounded-r-md transition-colors">
+                Subscribe
+              </button>
+            </form>
           </div>
 
-          <div className="flex flex-wrap justify-center items-center space-x-8 mb-8 text-sm">
-            <a href="#" className="hover:text-purple-300 transition-colors">
-              Home
-            </a>
-            <a href="#" className="hover:text-purple-300 transition-colors">
-              About
-            </a>
-            <a href="#" className="hover:text-purple-300 transition-colors">
-              Services
-            </a>
-            <a href="#" className="hover:text-purple-300 transition-colors">
-              Get In Touch
-            </a>
-            <a href="#" className="hover:text-purple-300 transition-colors">
-              FAQs
-            </a>
+          <div className="flex justify-center flex-wrap gap-x-8 gap-y-2 mb-8 text-sm text-gray-300">
+            <a href="#" className="hover:text-white transition-colors">Home</a>
+            <a href="#" className="hover:text-white transition-colors">About</a>
+            <a href="#" className="hover:text-white transition-colors">Services</a>
+            <a href="#" className="hover:text-white transition-colors">Get in touch</a>
+            <a href="#" className="hover:text-white transition-colors">FAQs</a>
           </div>
 
-          <div className="flex justify-center space-x-6 mb-8">
-            <a href="#" className="text-purple-300 hover:text-white transition-colors">
-              <Instagram className="w-6 h-6" />
-            </a>
-            <a href="#" className="text-purple-300 hover:text-white transition-colors">
-              <Facebook className="w-6 h-6" />
-            </a>
-            <a href="#" className="text-purple-300 hover:text-white transition-colors">
-              <Twitter className="w-6 h-6" />
-            </a>
-          </div>
+          <hr className="border-gray-700" />
 
-          <div className="text-center text-sm text-purple-300 border-t border-purple-800 pt-6">
-            <p>Your Copyright Text 2024 | Website by Somewhere</p>
+          <div className="flex flex-col sm:flex-row justify-between items-center pt-8 text-sm text-gray-400 gap-6">
+            <div className="flex items-center space-x-4">
+              <button className="bg-white text-[#0f0b30] px-3 py-1 rounded-md text-xs font-bold">English</button>
+              <a href="#" className="hover:text-white">French</a>
+              <a href="#" className="hover:text-white">Hindi</a>
+            </div>
+            <div className="flex items-center space-x-6">
+              <a href="#" className="hover:text-white"><Linkedin className="w-5 h-5" /></a>
+              <a href="#" className="hover:text-white"><Instagram className="w-5 h-5" /></a>
+              <a href="#" className="hover:text-white"><Facebook className="w-5 h-5" /></a>
+            </div>
+            <p className="text-center sm:text-right">Non Copyrighted ® 2023 Upload by EventHive</p>
           </div>
         </div>
       </footer>
     </div>
-  )
-}
+  );
+};
 
-export default UserDashboard
+export default UserDashboard;

@@ -7,7 +7,7 @@ import jwt
 import json
 import datetime
 from django.conf import settings
-from dotenv import load_dotenv 
+from dotenv import load_dotenv
 import os
 
 # Load environment variables
@@ -26,10 +26,6 @@ ALGORITHM = 'HS256'
 
 @csrf_exempt
 def signup(request):
-    """
-    Handles user registration.
-    Expects a POST request with a JSON body containing 'name', 'email', and 'password'.
-    """
     if request.method != 'POST':
         return JsonResponse({'error': 'Invalid request method'}, status=405)
 
@@ -62,24 +58,23 @@ def signup(request):
             return JsonResponse({'error': 'An account with this email already exists.'}, status=409)
 
         # --- Password Hashing ---
-        # Generate a salt and hash the password
         salt = bcrypt.gensalt()
         hashed_password = bcrypt.hashpw(password.encode('utf-8'), salt).decode('utf-8')
 
-        # --- Create User and Token ---
+        # --- Create User ---
         user_id = users_collection.insert_one({
             'name': name,
             'email': email,
             'password': hashed_password,
-            'createdAt': datetime.datetime.utcnow()
+            'createdAt': datetime.utcnow()  # Fixed here
         }).inserted_id
 
-        # Generate JWT token
+        # --- Generate JWT Token ---
         token = jwt.encode({
             'user_id': str(user_id),
             'email': email,
             'role': 'user',
-            'exp': datetime.datetime.utcnow() + datetime.timedelta(hours=24)
+            'exp': datetime.utcnow() + timedelta(hours=24)  # Fixed here
         }, SECRET_KEY, algorithm=ALGORITHM)
 
         return JsonResponse({'message': 'Signup successful', 'token': token}, status=201)
@@ -92,78 +87,119 @@ def signup(request):
 
 @csrf_exempt
 def login(request):
-    if request.method == 'POST':
-        try:
-            data = json.loads(request.body)
-            email = data.get('email')
-            password = data.get('password')
+    if request.method != 'POST':
+        return JsonResponse({'error': 'Invalid request method'}, status=405)
 
-            # Find user by email
-            user = users_collection.find_one({'email': email})
-            if not user:
-                return JsonResponse({'error': 'Invalid credentials'}, status=401)
+    try:
+        data = json.loads(request.body)
+        email = data.get('email')
+        password = data.get('password')
 
-            # Verify password
-            if not bcrypt.checkpw(password.encode('utf-8'), user['password'].encode('utf-8')):
-                return JsonResponse({'error': 'Invalid credentials'}, status=401)
+        # --- Field Validation ---
+        if not all([email, password]):
+            return JsonResponse({'error': 'Missing required fields: email and password are required.'}, status=400)
 
-            # Refresh token
-            token = jwt.encode({
-                'email': email,
-                'role': 'user',
-                'exp': datetime.datetime.utcnow() + datetime.timedelta(hours=24)
-            }, SECRET_KEY, algorithm=ALGORITHM)
+        # --- Find User ---
+        user = users_collection.find_one({'email': email})
+        if not user:
+            return JsonResponse({'error': 'Invalid credentials'}, status=401)
 
-            users_collection.update_one({'email': email}, {'$set': {'token': token}})
+        # --- Verify Password ---
+        if not bcrypt.checkpw(password.encode('utf-8'), user['password'].encode('utf-8')):
+            return JsonResponse({'error': 'Invalid credentials'}, status=401)
 
-            return JsonResponse({'token': token, 'redirect': '/user/home'}, status=200)
+        # --- Generate JWT Token ---
+        token = jwt.encode({
+            'user_id': str(user['_id']),
+            'email': email,
+            'role': 'user',
+            'exp': datetime.utcnow() + timedelta(hours=24)  # Fixed here
+        }, SECRET_KEY, algorithm=ALGORITHM)
 
-        except json.JSONDecodeError:
-            return JsonResponse({'error': 'Invalid JSON format'}, status=400)
-        except Exception as e:
-            return JsonResponse({'error': str(e)}, status=500)
+        return JsonResponse({
+            'message': 'Login successful',
+            'token': token,
+            'redirect': '/user/home'
+        }, status=200)
 
-    return JsonResponse({'error': 'Invalid request method'}, status=405)
+    except json.JSONDecodeError:
+        return JsonResponse({'error': 'Invalid JSON format'}, status=400)
+    except Exception as e:
+        print(f"An unexpected error occurred: {e}")
+        return JsonResponse({'error': 'An internal server error occurred.'}, status=500)
+
+from datetime import datetime, timedelta, time
 
 @csrf_exempt
-def browse_events(request):
-    if request.method == 'GET':
+def dashboard(request):
+    """
+    Handles user dashboard access with support for event filtering.
+    Expects a GET request with a JWT token in the Authorization header.
+    Filters can be passed as query parameters: 'type', 'location', 'date'.
+    """
+    if request.method != 'GET':
+        return JsonResponse({'error': 'Invalid request method'}, status=405)
+
+    try:
+        # --- 1. Authenticate User (Your existing logic is good) ---
+        auth_header = request.headers.get('Authorization')
+        if not auth_header or not auth_header.startswith('Bearer '):
+            return JsonResponse({'error': 'Missing or invalid Authorization header'}, status=401)
+        
+        token = auth_header.split(' ')[1]
         try:
-            # Authorization
-            auth_header = request.headers.get('Authorization')
-            if not auth_header or not auth_header.startswith('Bearer '):
-                return JsonResponse({'error': 'Unauthorized'}, status=401)
+            payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        except jwt.ExpiredSignatureError:
+            return JsonResponse({'error': 'Token has expired'}, status=401)
+        except jwt.InvalidTokenError:
+            return JsonResponse({'error': 'Invalid token'}, status=401)
 
-            token = auth_header.split(' ')[1]
-            try:
-                payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
-                if payload['role'] != 'user':
-                    return JsonResponse({'error': 'Access denied'}, status=403)
-            except jwt.ExpiredSignatureError:
-                return JsonResponse({'error': 'Token expired', 'redirect': '/user/login'}, status=401)
-            except jwt.DecodeError:
-                return JsonResponse({'error': 'Invalid token', 'redirect': '/user/login'}, status=401)
+        user = users_collection.find_one({'email': payload['email']})
+        if not user:
+            return JsonResponse({'error': 'User not found'}, status=404)
 
-            # Filter params
-            event_type = request.GET.get('type')       # free / paid
-            location = request.GET.get('location')     # part of venue
-            date = request.GET.get('date')             # YYYY-MM-DD
+        # --- 2. Build Filter Query from GET parameters ---
+        query_params = request.GET
+        find_query = {}
 
-            query = {}
-            if event_type in ['free', 'paid']:
-                query['cost_type'] = event_type
-            if location:
-                query['venue'] = {'$regex': location, '$options': 'i'}
-            if date:
-                query['start_date'] = {'$gte': date}
+        # Filter by type (e.g., ?type=free)
+        event_type = query_params.get('type')
+        if event_type:
+            find_query['cost_type'] = event_type
 
-            events = list(events_collection.find(query, {'_id': 0}))
-            if not events:
-                return JsonResponse({'message': 'No events found', 'events': []}, status=200)
+        # Filter by location (e.g., ?location=lucknow)
+        location = query_params.get('location')
+        if location:
+            # Use regex for a case-insensitive, partial string match
+            find_query['venue'] = {'$regex': location, '$options': 'i'}
 
-            return JsonResponse({'events': events}, status=200)
+        # Filter by date (e.g., ?date=today or ?date=week)
+        # Note: Assumes 'start_date' is stored in a format MongoDB can query (like ISO 8601 string)
+        date_filter = query_params.get('date')
+        if date_filter:
+            today_dt = datetime.now()
+            if date_filter == 'today':
+                start_of_day = datetime.combine(today_dt.date(), time.min)
+                end_of_day = datetime.combine(today_dt.date(), time.max)
+                find_query['start_date'] = {'$gte': start_of_day.isoformat(), '$lte': end_of_day.isoformat()}
+            elif date_filter == 'week':
+                start_of_week = datetime.combine(today_dt.date(), time.min)
+                end_of_week_dt = today_dt + timedelta(days=7)
+                end_of_week = datetime.combine(end_of_week_dt.date(), time.max)
+                find_query['start_date'] = {'$gte': start_of_week.isoformat(), '$lte': end_of_week.isoformat()}
+        
+        # --- 3. Fetch Filtered Events ---
+        events = list(events_collection.find(find_query, {'_id': 0}))  # Exclude _id field
+        
+        return JsonResponse({
+            'message': 'Dashboard data retrieved successfully',
+            'user': {
+                'name': user.get('name', ''),
+                'email': user.get('email', '')
+            },
+            'events': events
+        }, status=200)
 
-        except Exception as e:
-            return JsonResponse({'error': str(e)}, status=500)
-
-    return JsonResponse({'error': 'Invalid request method'}, status=405)
+    except Exception as e:
+        print(f"An unexpected error occurred: {e}")
+        return JsonResponse({'error': 'An internal server error occurred.'}, status=500)

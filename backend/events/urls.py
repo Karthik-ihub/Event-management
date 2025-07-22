@@ -11,5 +11,5 @@ urlpatterns = [
     # User endpoints
     path('user/signup/', users.signup, name='user_signup'),
     path('user/login/', users.login, name='user_login'),
-    path('user/events/', users.browse_events, name='browse_events'),
+    path('user/dashboard/', users.dashboard, name='dashboard'),
 ]
