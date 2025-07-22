@@ -2,7 +2,7 @@
 A web-based application for event creation and discovery with Admin and User flows.
 
 ## Setup Instructions
-1. Clone the repository: `git clone https://github.com/your-username/event-management-platform.git`
+1. Clone the repository: `git clone https://github.com/Karthik-ihub/event-management-platform.git`
 2. Navigate to the project directory: `cd event-management-platform`
 3. Navigate to backend: `cd backend`
 4. Set up a Python virtual environment: `python -m virtualenv venv`
@@ -18,23 +18,35 @@ A web-based application for event creation and discovery with Admin and User flo
 - **Backend**: Django (Python)
 - **Database**: MongoDB
 - **API**: Django REST Framework
-- **Auth**: JWT (python-jose)
+- **Auth**: JWT (pyjwt)
 
 ## Approach
 (TBD: Will be updated with a brief explanation of the project approach, max 300 words, once development progresses)
 
-## Folder Structure
-\`\`\`
-/event-management-platform
-├── /backend
-│   ├── /event_platform     # Django project
-│   ├── /events             # Django app for event management
-│   ├── /media              # For file uploads
-│   ├── /venv               # Python virtual environment
-│   ├── manage.py           # Django management script
-│   ├── requirements.txt
-├── /frontend               # React.js frontend
-├── /docs                   # Architecture diagram and documentation
-├── .gitignore
-├── README.md
-\`\`\`
+## 📁 Folder Structure
+
+event-management-platform/
+├── backend/
+│   ├── event_platform/      # Django project settings (settings.py, urls.py)
+│   ├── events/              # Django app for event models, views, and APIs
+│   ├── static/              # For serving static files in production
+│   ├── venv/                # Python virtual environment (ignored by Git)
+│   ├── manage.py            # Django's command-line utility
+│   └── requirements.txt     # Backend Python dependencies
+│
+├── frontend/
+│   ├── public/              # Static assets (index.html, favicon)
+│   ├── src/                 # React source code
+│   │   ├── assets/          # Images, fonts, and global styles
+│   │   ├── components/      # Reusable UI components
+│   │   ├── pages/           # Page components (e.g., Home, Dashboard)
+│   │   ├── App.jsx          # Main application component
+│   │   └── main.jsx         # Application entry point
+│   ├── .env                 # Environment variables (e.g., API URL)
+│   ├── package.json         # Frontend dependencies and scripts
+│   └── vite.config.js       # Build configuration for Vite (or similar)
+│
+├── docs/                    # Project documentation and architecture diagrams
+│
+├── .gitignore               # Specifies intentionally untracked files to ignore
+└── README.md                # This file: Project overview and setup guide
