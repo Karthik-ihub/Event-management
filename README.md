@@ -30,6 +30,7 @@ event-management-platform/
 │   ├── event_platform/      # Django project settings (settings.py, urls.py)
 │   ├── events/              # Django app for event models, views, and APIs
 │   ├── static/              # For serving static files in production
+│   ├── media/               # For user-uploaded media files (event images)
 │   ├── venv/                # Python virtual environment (ignored by Git)
 │   ├── manage.py            # Django's command-line utility
 │   └── requirements.txt     # Backend Python dependencies
@@ -48,5 +49,7 @@ event-management-platform/
 │
 ├── docs/                    # Project documentation and architecture diagrams
 │
+├── .gitignore               # Specifies intentionally untracked files to ignore
+└── README.md                # This file: Project overview and setup guide
 ├── .gitignore               # Specifies intentionally untracked files to ignore
 └── README.md                # This file: Project overview and setup guide
