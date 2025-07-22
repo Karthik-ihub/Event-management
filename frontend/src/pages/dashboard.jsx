@@ -17,7 +17,7 @@ const Dashboard = () => {
     try {
       const token = localStorage.getItem("adminToken")
       if (!token) {
-        window.location.href = "/admin/login"
+        window.location.href = "/adminsignin"
         return
       }
 
@@ -41,7 +41,7 @@ const Dashboard = () => {
       console.error("Dashboard fetch error:", err)
       if (err.response?.status === 401) {
         localStorage.removeItem("adminToken")
-        window.location.href = "/admin/login"
+        window.location.href = "/adminsignin"
       } else {
         setError(err.response?.data?.error || "Failed to load dashboard data")
       }
@@ -52,7 +52,7 @@ const Dashboard = () => {
 
   const handleLogout = () => {
     localStorage.removeItem("adminToken")
-    window.location.href = "/admin/login"
+    window.location.href = "/adminsignin"
   }
 
   const handleCreateEvent = () => {
@@ -122,10 +122,14 @@ const Dashboard = () => {
         </div>
       </header>
 
-      {/* Hero Image Section */}
-      <div className="relative overflow-hidden">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
-          <img src={purpleImage || "/placeholder.svg"} alt="Event Hero" className="w-full h-80 object-contain" />
+      {/* Hero Image Section - Aligned with content below */}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div className="relative overflow-hidden rounded-lg">
+          <img 
+            src={purpleImage || "/placeholder.svg"} 
+            alt="Event Hero" 
+            className="w-full h-96 object-cover" 
+          />
         </div>
       </div>
 
