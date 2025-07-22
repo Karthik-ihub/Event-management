@@ -69,14 +69,14 @@ const AdminSignin = () => {
         <div className="w-full max-w-md">
           {/* Logo */}
           <h3 className="text-lg font-semibold text-gray-700 text-left">
-            Event <span className="text-purple-600">Hive (Admin)</span>
+            Event <span className="text działają-600">Hive (Admin)</span>
           </h3>
 
           {/* Main Title */}
           <h1 className="text-4xl font-bold mt-4 mb-8 text-left text-gray-900">Admin Panel Sign In</h1>
 
           {/* The Form */}
-          <div className="w-full space-y-6">
+          <form className="w-full space-y-6" onSubmit={handleSubmit}>
             {/* Email Input */}
             <div>
               <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="email">
@@ -119,14 +119,13 @@ const AdminSignin = () => {
 
             {/* Submit Button */}
             <button
-              type="button"
-              onClick={handleSubmit}
+              type="submit"
               disabled={loading}
               className="w-full bg-purple-600 text-white font-bold py-3 rounded-md hover:bg-purple-700 transition duration-300 ease-in-out disabled:bg-purple-400"
             >
               {loading ? "Signing In..." : "Sign In"}
             </button>
-          </div>
+          </form>
         </div>
       </div>
 

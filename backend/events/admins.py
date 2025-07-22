@@ -10,7 +10,8 @@ import datetime
 from django.conf import settings
 from dotenv import load_dotenv
 import google.generativeai as genai
-
+import base64
+import bcrypt
 # Load env and configure Gemini
 load_dotenv()
 genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
@@ -49,6 +50,10 @@ def generate_ai_description(title, venue, start_date, end_date, time, cost_type)
 
 @csrf_exempt
 def register(request):
+    """
+    Handles admin registration.
+    Expects a POST request with a JSON body containing 'name', 'email', and 'password'.
+    """
     if request.method == 'POST':
         try:
             data = json.loads(request.body)
@@ -56,6 +61,7 @@ def register(request):
             email = data.get('email')
             password = data.get('password')
 
+            # --- Field Validation ---
             if not name or not re.match(r'^[A-Za-z]+$', name):
                 return JsonResponse({'error': 'Name must be alphabetic only'}, status=400)
             if not email or not re.match(r'^[\w\.-]+@[\w\.-]+\.\w+$', email):
@@ -65,17 +71,24 @@ def register(request):
             if admins_collection.find_one({'email': email}):
                 return JsonResponse({'error': 'Email already exists'}, status=400)
 
+            # --- Password Hashing ---
+            salt = bcrypt.gensalt()
+            hashed_password = bcrypt.hashpw(password.encode('utf-8'), salt).decode('utf-8')
+
+            # --- Generate JWT Token ---
             token = jwt.encode({
                 'email': email,
                 'role': 'admin',
                 'exp': datetime.datetime.utcnow() + datetime.timedelta(hours=24)
             }, SECRET_KEY, algorithm=ALGORITHM)
 
+            # --- Store Admin ---
             admins_collection.insert_one({
                 'name': name,
                 'email': email,
-                'password': password,
-                'token': token
+                'password': hashed_password,
+                'token': token,
+                'createdAt': datetime.datetime.utcnow()
             })
 
             return JsonResponse({'token': token, 'redirect': '/admin/create-event'}, status=201)
@@ -83,23 +96,33 @@ def register(request):
         except json.JSONDecodeError:
             return JsonResponse({'error': 'Invalid JSON data'}, status=400)
         except Exception as e:
-            return JsonResponse({'error': str(e)}, status=400)
+            print(f"An unexpected error occurred: {e}")
+            return JsonResponse({'error': str(e)}, status=500)
     return JsonResponse({'error': 'Invalid request method'}, status=405)
-
 
 @csrf_exempt
 def login(request):
+    """
+    Handles admin login.
+    Expects a POST request with a JSON body containing 'email' and 'password'.
+    """
     if request.method == 'POST':
         try:
             data = json.loads(request.body)
             email = data.get('email')
             password = data.get('password')
 
-            admin = admins_collection.find_one({'email': email, 'password': password})
+            # Find admin by email
+            admin = admins_collection.find_one({'email': email})
             if not admin:
                 return JsonResponse({'error': 'Invalid credentials'}, status=401)
 
-            token = admin.get('token') or jwt.encode({
+            # Verify password
+            if not bcrypt.checkpw(password.encode('utf-8'), admin['password'].encode('utf-8')):
+                return JsonResponse({'error': 'Invalid credentials'}, status=401)
+
+            # Generate or refresh token
+            token = jwt.encode({
                 'email': email,
                 'role': 'admin',
                 'exp': datetime.datetime.utcnow() + datetime.timedelta(hours=24)
@@ -112,10 +135,10 @@ def login(request):
         except json.JSONDecodeError:
             return JsonResponse({'error': 'Invalid JSON'}, status=400)
         except Exception as e:
-            return JsonResponse({'error': str(e)}, status=400)
+            print(f"An unexpected error occurred: {e}")
+            return JsonResponse({'error': str(e)}, status=500)
     return JsonResponse({'error': 'Invalid request method'}, status=405)
 
-import base64
 @csrf_exempt
 def create_event(request):
     if request.method == 'POST':

@@ -1,12 +1,13 @@
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
+import bcrypt
 import pymongo
 import re
 import jwt
 import json
 import datetime
 from django.conf import settings
-from dotenv import load_dotenv
+from dotenv import load_dotenv 
 import os
 
 # Load environment variables
@@ -57,45 +58,38 @@ def signup(request):
             }, status=400)
 
         # --- Check for Existing User ---
-        # A user should be unique by their email address.
         if users_collection.find_one({'email': email}):
-            return JsonResponse({'error': 'An account with this email already exists.'}, status=409) # 409 Conflict is more appropriate
+            return JsonResponse({'error': 'An account with this email already exists.'}, status=409)
 
-        # --- Password Hashing (CRITICAL FOR SECURITY) ---
-        # Storing plain text passwords is a major security risk.
-        # Use a library like passlib or bcrypt.
-        # Example with passlib:
-        # hashed_password = bcrypt.hash(password)
+        # --- Password Hashing ---
+        # Generate a salt and hash the password
+        salt = bcrypt.gensalt()
+        hashed_password = bcrypt.hashpw(password.encode('utf-8'), salt).decode('utf-8')
 
         # --- Create User and Token ---
         user_id = users_collection.insert_one({
             'name': name,
             'email': email,
-            # 'password': hashed_password, # Store the hashed password
-            'password': password, # Insecure! Only for demonstration. HASH YOUR PASSWORDS!
+            'password': hashed_password,
             'createdAt': datetime.datetime.utcnow()
         }).inserted_id
 
         # Generate JWT token
         token = jwt.encode({
-            'user_id': str(user_id), # Use the non-sensitive DB ID
+            'user_id': str(user_id),
             'email': email,
             'role': 'user',
             'exp': datetime.datetime.utcnow() + datetime.timedelta(hours=24)
         }, SECRET_KEY, algorithm=ALGORITHM)
 
-        # --- Success Response ---
-        # You can optionally update the user record with the token, but it's not always necessary
-        # users_collection.update_one({'_id': user_id}, {'$set': {'token': token}})
-        
         return JsonResponse({'message': 'Signup successful', 'token': token}, status=201)
 
     except json.JSONDecodeError:
         return JsonResponse({'error': 'Invalid JSON format in request body'}, status=400)
     except Exception as e:
-        # Log the exception for debugging purposes
         print(f"An unexpected error occurred: {e}")
         return JsonResponse({'error': 'An internal server error occurred.'}, status=500)
+
 @csrf_exempt
 def login(request):
     if request.method == 'POST':
@@ -104,8 +98,13 @@ def login(request):
             email = data.get('email')
             password = data.get('password')
 
-            user = users_collection.find_one({'email': email, 'password': password})
+            # Find user by email
+            user = users_collection.find_one({'email': email})
             if not user:
+                return JsonResponse({'error': 'Invalid credentials'}, status=401)
+
+            # Verify password
+            if not bcrypt.checkpw(password.encode('utf-8'), user['password'].encode('utf-8')):
                 return JsonResponse({'error': 'Invalid credentials'}, status=401)
 
             # Refresh token
@@ -125,7 +124,6 @@ def login(request):
             return JsonResponse({'error': str(e)}, status=500)
 
     return JsonResponse({'error': 'Invalid request method'}, status=405)
-
 
 @csrf_exempt
 def browse_events(request):
