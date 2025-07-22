@@ -1,0 +1,292 @@
+import type React from "react"
+import { useState } from "react"
+import { Upload } from "lucide-react"
+import axios from "axios" // Import axios
+
+export default function CreateEvent() {
+  const [formData, setFormData] = useState({
+    eventTitle: "",
+    eventVenue: "",
+    startTime: "",
+    endTime: "",
+    startDate: "",
+    endDate: "",
+    eventCost: "",
+    eventDescription: "",
+    eventImage: null as File | null, // More specific type for the image file
+  })
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    const { name, value } = e.target
+    setFormData((prev) => ({
+      ...prev,
+      [name]: value,
+    }))
+  }
+
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (file) {
+      setFormData((prev) => ({
+        ...prev,
+        eventImage: file,
+      }))
+    }
+  }
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+
+    // 1. Get the auth token (assuming it's stored in localStorage after login)
+    const token = localStorage.getItem("adminToken")
+    if (!token) {
+      alert("You are not authorized. Please log in.")
+      return
+    }
+
+    // 2. Create a FormData object to handle file upload
+    const data = new FormData()
+
+    // 3. Map frontend state to backend field names
+    // Note the differences: eventTitle -> title, eventVenue -> venue, etc.
+    data.append("title", formData.eventTitle)
+    data.append("venue", formData.eventVenue)
+    data.append("start_date", formData.startDate)
+    data.append("end_date", formData.endDate)
+
+    // Combine start and end time as your backend expects a single 'time' field
+    const timeRange = `${formData.startTime} - ${formData.endTime}`
+    data.append("time", timeRange)
+
+    // Determine 'cost_type' based on the eventCost input
+    const costType = formData.eventCost && parseFloat(formData.eventCost) > 0 ? "paid" : "free"
+    data.append("cost_type", costType)
+    
+    data.append("description", formData.eventDescription)
+
+    // Append the image file if it exists
+    if (formData.eventImage) {
+      data.append("image", formData.eventImage)
+    } else {
+      alert("Please upload an event image.")
+      return
+    }
+
+    // 4. Make the API request using axios
+    try {
+      const response = await axios.post("http://localhost:8000/api/admin/events/", data, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          // 'Content-Type': 'multipart/form-data' is set automatically by the browser
+          // when you use a FormData object, so you don't need to set it manually.
+        },
+      })
+
+      alert("Event created successfully!")
+      console.log("Server response:", response.data)
+
+      // As per your backend, redirect on success
+      if (response.data.redirect) {
+        window.location.href = response.data.redirect
+      }
+
+    } catch (error) {
+        if (axios.isAxiosError(error)) {
+            // Access specific error message from the backend response
+            const errorMessage = error.response?.data?.error || "An unexpected error occurred."
+            alert(`Error creating event: ${errorMessage}`)
+            console.error("Error creating event:", error.response?.data)
+        } else {
+            alert("An unexpected error occurred.")
+            console.error("Error creating event:", error)
+        }
+    }
+  }
+
+  return (
+    <div className="min-h-screen bg-gray-50 py-8 px-4">
+      <div className="max-w-2xl mx-auto">
+        {/* Header */}
+        <div className="mb-8">
+          <h1 className="text-2xl font-bold text-gray-900">
+            Event <span className="text-purple-600">Hive</span>
+          </h1>
+        </div>
+
+        {/* Main Form */}
+        <div className="bg-white rounded-lg shadow-sm p-8">
+          <h2 className="text-2xl font-bold text-center text-gray-900 mb-8">Create Event</h2>
+
+          <form onSubmit={handleSubmit} className="space-y-6">
+            {/* Event Title */}
+            <div>
+              <label htmlFor="eventTitle" className="block text-sm font-medium text-gray-700 mb-2">
+                Event Title
+              </label>
+              <input
+                type="text"
+                id="eventTitle"
+                name="eventTitle"
+                value={formData.eventTitle}
+                onChange={handleInputChange}
+                placeholder="Enter your event"
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent outline-none transition-all"
+                required
+              />
+            </div>
+
+            {/* Event Venue */}
+            <div>
+              <label htmlFor="eventVenue" className="block text-sm font-medium text-gray-700 mb-2">
+                Event Venue
+              </label>
+              <input
+                type="text"
+                id="eventVenue"
+                name="eventVenue"
+                value={formData.eventVenue}
+                onChange={handleInputChange}
+                placeholder="Enter venue address"
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent outline-none transition-all"
+                required
+              />
+            </div>
+
+            {/* Time Row */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label htmlFor="startTime" className="block text-sm font-medium text-gray-700 mb-2">
+                  Start time
+                </label>
+                <input
+                  type="time"
+                  id="startTime"
+                  name="startTime"
+                  value={formData.startTime}
+                  onChange={handleInputChange}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent outline-none transition-all"
+                  required
+                />
+              </div>
+              <div>
+                <label htmlFor="endTime" className="block text-sm font-medium text-gray-700 mb-2">
+                  End time
+                </label>
+                <input
+                  type="time"
+                  id="endTime"
+                  name="endTime"
+                  value={formData.endTime}
+                  onChange={handleInputChange}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent outline-none transition-all"
+                  required
+                />
+              </div>
+            </div>
+
+            {/* Date Row */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label htmlFor="startDate" className="block text-sm font-medium text-gray-700 mb-2">
+                  Start date
+                </label>
+                <input
+                  type="date"
+                  id="startDate"
+                  name="startDate"
+                  value={formData.startDate}
+                  onChange={handleInputChange}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent outline-none transition-all"
+                  required
+                />
+              </div>
+              <div>
+                <label htmlFor="endDate" className="block text-sm font-medium text-gray-700 mb-2">
+                  End date
+                </label>
+                <input
+                  type="date"
+                  id="endDate"
+                  name="endDate"
+                  value={formData.endDate}
+                  onChange={handleInputChange}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent outline-none transition-all"
+                  required
+                />
+              </div>
+            </div>
+
+            {/* Event Cost */}
+            <div>
+              <label htmlFor="eventCost" className="block text-sm font-medium text-gray-700 mb-2">
+                Event Cost (enter 0 for free)
+              </label>
+              <input
+                type="number"
+                id="eventCost"
+                name="eventCost"
+                value={formData.eventCost}
+                onChange={handleInputChange}
+                placeholder="Enter the cost of the event in INR"
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent outline-none transition-all"
+                required
+              />
+            </div>
+
+            {/* Event Description Section */}
+            <div className="pt-6">
+              <h3 className="text-xl font-bold text-gray-900 mb-6">Event Description</h3>
+
+              {/* Event Image Upload */}
+              <div className="mb-6">
+                <label className="block text-sm font-medium text-gray-700 mb-2">Event Image</label>
+                <div className="relative">
+                  <input
+                    type="file"
+                    accept="image/png, image/jpeg, image/jpg"
+                    onChange={handleImageUpload}
+                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
+                    required
+                  />
+                  <div className="bg-gray-100 border-2 border-dashed border-gray-300 rounded-lg p-12 text-center hover:bg-gray-50 transition-colors">
+                    <Upload className="mx-auto h-12 w-12 text-gray-400 mb-4" />
+                    <p className="text-gray-600 font-medium">
+                        {formData.eventImage ? formData.eventImage.name : "Upload Here"}
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Event Description */}
+              <div>
+                <label htmlFor="eventDescription" className="block text-sm font-medium text-gray-700 mb-2">
+                  Event Description
+                </label>
+                <textarea
+                  id="eventDescription"
+                  name="eventDescription"
+                  value={formData.eventDescription}
+                  onChange={handleInputChange}
+                  placeholder="Type here..."
+                  rows={6}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent outline-none transition-all resize-none"
+                  required
+                />
+              </div>
+            </div>
+
+            {/* Submit Button */}
+            <div className="pt-6">
+              <button
+                type="submit"
+                className="w-full bg-purple-600 hover:bg-purple-700 text-white font-semibold py-4 px-6 rounded-lg transition-colors duration-200 focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 outline-none"
+              >
+                Create event
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  )
+}
