@@ -1,6 +1,6 @@
 import type React from "react";
 import { useState } from "react";
-import { useNavigate } from "react-router-dom"; // Import useNavigate for React Router
+import { useNavigate } from "react-router-dom";
 import { Upload } from "lucide-react";
 import axios from "axios";
 
@@ -17,7 +17,7 @@ export default function CreateEvent() {
     eventImage: null as File | null,
   });
 
-  const navigate = useNavigate(); // Initialize useNavigate hook
+  const navigate = useNavigate();
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
@@ -130,7 +130,7 @@ export default function CreateEvent() {
       alert("Event created successfully!");
       console.log("Server response:", response.data);
 
-      // Redirect to /dashboard using useNavigate
+      // Redirect to /dashboard
       navigate("/dashboard");
     } catch (error) {
       if (axios.isAxiosError(error)) {
@@ -147,19 +147,14 @@ export default function CreateEvent() {
   return (
     <div className="min-h-screen bg-gray-50 py-8 px-4">
       <div className="max-w-2xl mx-auto">
-        {/* Header */}
         <div className="mb-8">
           <h1 className="text-2xl font-bold text-gray-900">
             Event <span className="text-purple-600">Hive</span>
           </h1>
         </div>
-
-        {/* Main Form */}
         <div className="bg-white rounded-lg shadow-sm p-8">
           <h2 className="text-2xl font-bold text-center text-gray-900 mb-8">Create Event</h2>
-
           <form onSubmit={handleSubmit} className="space-y-6">
-            {/* Event Title */}
             <div>
               <label htmlFor="eventTitle" className="block text-sm font-medium text-gray-700 mb-2">
                 Event Title
@@ -175,8 +170,6 @@ export default function CreateEvent() {
                 required
               />
             </div>
-
-            {/* Event Venue */}
             <div>
               <label htmlFor="eventVenue" className="block text-sm font-medium text-gray-700 mb-2">
                 Event Venue
@@ -192,8 +185,6 @@ export default function CreateEvent() {
                 required
               />
             </div>
-
-            {/* Time Row */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <label htmlFor="startTime" className="block text-sm font-medium text-gray-700 mb-2">
@@ -224,8 +215,6 @@ export default function CreateEvent() {
                 />
               </div>
             </div>
-
-            {/* Date Row */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <label htmlFor="startDate" className="block text-sm font-medium text-gray-700 mb-2">
@@ -256,8 +245,6 @@ export default function CreateEvent() {
                 />
               </div>
             </div>
-
-            {/* Event Cost */}
             <div>
               <label htmlFor="eventCost" className="block text-sm font-medium text-gray-700 mb-2">
                 Event Cost (enter 0 for free)
@@ -273,12 +260,8 @@ export default function CreateEvent() {
                 required
               />
             </div>
-
-            {/* Event Description Section */}
             <div className="pt-6">
               <h3 className="text-xl font-bold text-gray-900 mb-6">Event Description</h3>
-
-              {/* Event Image Upload */}
               <div className="mb-6">
                 <label className="block text-sm font-medium text-gray-700 mb-2">Event Image</label>
                 <div className="relative">
@@ -297,8 +280,6 @@ export default function CreateEvent() {
                   </div>
                 </div>
               </div>
-
-              {/* Generate AI Description Button */}
               <div className="mb-6">
                 <button
                   type="button"
@@ -308,8 +289,6 @@ export default function CreateEvent() {
                   Generate AI Description
                 </button>
               </div>
-
-              {/* Event Description */}
               <div>
                 <label htmlFor="eventDescription" className="block text-sm font-medium text-gray-700 mb-2">
                   Event Description
@@ -326,8 +305,6 @@ export default function CreateEvent() {
                 />
               </div>
             </div>
-
-            {/* Submit Button */}
             <div className="pt-6">
               <button
                 type="submit"
